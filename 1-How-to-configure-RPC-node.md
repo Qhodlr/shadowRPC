@@ -395,6 +395,37 @@ net.core.wmem_default=134217728
 ```
 Save / exit `ctrl+0` then `ctrl+x`
 
+Set up the geyser plugin
+
+```
+git clone https://github.com/DataKnox/geyser-grpc-plugin.git
+
+cd geyser-grpc-plugin/
+
+git checkout v1.16
+
+cargo build
+```
+Edit the config file
+```
+sudo nano config.json
+```
+Paste this in
+```
+{
+  "libpath": "/home/sol/geyser-grpc-plugin/target/debug/libgeyser_grpc_plugin_server.so",
+  "bind_address": "0.0.0.0:10000",
+  "account_update_buffer_size": 100000,
+  "slot_update_buffer_size": 100000,
+  "block_update_buffer_size": 100000,
+  "transaction_update_buffer_size": 100000,
+  "geyser_service_config": {
+    "heartbeat_interval_ms": 1000,
+    "subscriber_buffer_size": 1000000
+  }
+}
+```
+Ctrl+X to save
 # Start up and test the Shadow Node
 
 ```
