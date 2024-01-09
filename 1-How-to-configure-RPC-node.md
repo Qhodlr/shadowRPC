@@ -10,37 +10,28 @@ So you have your shiny new beast of a server. Let's make it a Shadow Operator RP
 
 First things first - OS security updates
 ```
-apt update
+sudo apt update && sudo apt upgrade -y
 
-apt upgrade
-
-apt dist-upgrade
 ```
 create user sol
 
 ```
-adduser sol
+sudo adduser sol
 
-usermod -aG sudo sol
+sudo usermod -aG sudo sol
 
+sudo visudo
+```
+add this line
+```
+sol     ALL=(ALL) NOPASSWD: ALL
+```
+sign in
+```
 su - sol
 ```
 
-**Hostname Creation**
-
-In order for the Shadow Network to accept your machine, you need to set your hostname with the following parameters:
-
-**You must use the following for your hostname or your request to join the network will be rejected**:
-
-```shadow-<region>-<discordname>-<discordusernumber>-<servercount>```
-
-For example, if you are in the North American region and your discord name is johndoe#1234, your server would be:
-
-```shadow-na-johndoe-1234-01```
-
-The server count represents your personal shadow nodes.  If you only have 1, it would be 01, if you have 2 and this is your second, it would be 02, and so on.
-You can set your hostname with the following command:
-
+Set a hostname if you want
 ```sudo hostnamectl set-hostname newNameHere``` 
 
 Partition hard drive for RPC
@@ -60,6 +51,10 @@ Now make filessytems, directories, delete and make new swap, etc:
 sudo fdisk -l 
 
 sudo mkfs -t ext4 /dev/nvme0n1p1
+
+sudo mkdir /mt
+
+sudo mkdir /extmt
 
 sudo mount /dev/nvme0n1p1 /mt
 
@@ -144,11 +139,13 @@ Finish making directories and setting permissions:
 ```
 sudo mkdir -p /mt/ledger/validator-ledger
 
-sudo mkdir -p /mt/accounts/solana-accounts
+sudo mkdir -p /extmt/accounts/solana-accounts
 
-sudo mkdir ~/log
+sudo mkdir /extmt/log
 
 sudo chown -R sol:sol /mt/*
+
+sudo chown -R sol:sol /extmt/*
 
 sudo chown sol:sol ~/log
 
@@ -156,26 +153,45 @@ sudo chown sol:sol ~/log
 Set up the firewall / ssh
 
 ```
-sudo snap install ufw
-
-sudo ufw enable
-
 sudo ufw allow ssh
 ```
 There are additional ports in prep for open source monitoring stack and other networking features. It is important to understand how UFW works and how to manage the attack surface of the machine. If you want to identify the ports Solana needs (8000-8012) and reduce your attack surface by only enable those at this time please do. As Shadow Protocol evolves so will the port exposures and the need for awareness around those.
 
 Dump this entire command block for basic Shadow Node function:
 ```
-sudo ufw allow 53;sudo ufw allow 8899/tcp;sudo ufw allow 8900/tcp;sudo ufw allow 8000:8012/udp
+sudo ufw allow 53
+sudo ufw allow ssh
+sudo ufw allow from 127.0.0.1 to 127.0.0.1 port 8899 proto tcp
+sudo ufw allow from 127.0.0.1 to 127.0.0.1 port 8900 proto tcp
+sudo ufw allow 8000:8020/udp
+sudo ufw enable
 ```
 These additional rules are in preparation for more Shadow Protocol features. Just drop this expanded rules block when there is a request from the team to expand ports:
 ```
 sudo ufw allow 53;sudo ufw allow 8899;sudo ufw allow 8899/tcp;sudo ufw allow 8900/tcp;sudo ufw allow 9900/udp;sudo ufw allow 9900/tcp;sudo ufw allow 9900;sudo ufw allow 8900;sudo ufw allow 8000:8012/udp
 ```
-# Install the Solana CLI! Don't forget to check for current version (1.9.16 as of 04/20/2022)
+# Jito Install
 
 ```
-sh -c "$(curl -sSfL https://release.solana.com/v1.9.16/install)"
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+rustup component add rustfmt
+rustup update
+sudo apt-get update
+sudo apt-get install libssl-dev libudev-dev pkg-config zlib1g-dev llvm clang cmake make libprotobuf-dev protobuf-compiler
+```
+Export the current version
+```
+export TAG=v1.XX.XX-jito
+```
+Install the Solana software
+```
+git clone https://github.com/jito-foundation/jito-solana.git --recurse-submodules
+cd jito-solana
+git checkout tags/$TAG
+git submodule update --init --recursive
+
+CI_COMMIT=$(git rev-parse HEAD) scripts/cargo-install-all.sh --validator-only ~/.local/share/solana/install/releases/"$TAG"
 ```
 
 It will ask you to map the PATH just copy and paste the command below:
@@ -212,52 +228,48 @@ Edit this into start-validator.sh:
 
 ```
 #!/bin/bash
-PATH=/home/sol/.local/share/solana/install/active_release/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+PATH=/home/sol/.local/share/solana/install/releases/v1.16.26-jito/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 export RUST_BACKTRACE=1
 export RUST_LOG=solana=info
 exec solana-validator \
---identity ~/validator-keypair.json \
---entrypoint entrypoint.mainnet-beta.solana.com:8001 \
---entrypoint entrypoint2.mainnet-beta.solana.com:8001 \
---entrypoint entrypoint3.mainnet-beta.solana.com:8001 \
---entrypoint entrypoint4.mainnet-beta.solana.com:8001 \
---entrypoint entrypoint5.mainnet-beta.solana.com:8001 \
---known-validator 7cVfgArCheMR6Cs4t6vz5rfnqd56vZq4ndaBrY5xkxXy \
---known-validator DDnAqxJVFo2GVTujibHt5cjevHMSE9bo8HJaydHoshdp \
---known-validator Ninja1spj6n9t5hVYgF3PdnYz2PLnkt7rvaw3firmjs \
---known-validator wWf94sVnaXHzBYrePsRUyesq6ofndocfBH6EmzdgKMS \
---known-validator 7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2 \
---known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ \
---known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
---known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
---rpc-port 8899 \
---dynamic-port-range 8002-8020 \
---no-port-check \
---gossip-port 8001 \
---no-untrusted-rpc \
---no-voting \
---private-rpc \
---rpc-bind-address 0.0.0.0 \
---enable-cpi-and-log-storage \
---account-index program-id \
---account-index spl-token-owner \
---account-index spl-token-mint \
---enable-rpc-transaction-history \
---no-duplicate-instance-check \
---wal-recovery-mode skip_any_corrupted_record \
---vote-account ~/vote-account-keypair.json \
---log ~/log/solana-validator.log \
---accounts /mt/accounts/solana-accounts \
---ledger /mt/ledger/validator-ledger \
---limit-ledger-size 400000000 \
---rpc-send-default-max-retries 3 \
---rpc-send-service-max-retries 3 \
---rpc-send-retry-ms 2000 \
---full-rpc-api \
---accounts-index-memory-limit-mb 100 \
---accounts-db-cache-limit-mb 50 \
---accounts-index-scan-results-limit-mb 30 \
---account-index-exclude-key kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6 \
+  --identity ~/validator-keypair.json \
+  --entrypoint entrypoint.mainnet-beta.solana.com:8001 \
+  --entrypoint entrypoint2.mainnet-beta.solana.com:8001 \
+  --entrypoint entrypoint3.mainnet-beta.solana.com:8001 \
+  --entrypoint entrypoint4.mainnet-beta.solana.com:8001 \
+  --entrypoint entrypoint5.mainnet-beta.solana.com:8001 \
+  --known-validator 7cVfgArCheMR6Cs4t6vz5rfnqd56vZq4ndaBrY5xkxXy \
+  --known-validator DDnAqxJVFo2GVTujibHt5cjevHMSE9bo8HJaydHoshdp \
+  --known-validator Ninja1spj6n9t5hVYgF3PdnYz2PLnkt7rvaw3firmjs \
+  --known-validator wWf94sVnaXHzBYrePsRUyesq6ofndocfBH6EmzdgKMS \
+  --known-validator 7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2 \
+  --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ \
+  --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ \
+  --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S \
+  --rpc-port 8899 \
+  --dynamic-port-range 8002-8020 \
+  --no-port-check \
+  --gossip-port 8001 \
+  --no-voting \
+  --private-rpc \
+  --rpc-bind-address 0.0.0.0 \
+  --enable-cpi-and-log-storage \
+  --account-index program-id spl-token-owner spl-token-mint \
+  --enable-rpc-transaction-history \
+  --wal-recovery-mode skip_any_corrupted_record \
+  --vote-account ~/vote-account-keypair.json \
+  --log /extmt/log/solana-validator.log \
+  --accounts /extmt/account/solana-accounts \
+  --ledger /mt/ledger/validator-ledger \
+  --limit-ledger-size 250000000 \
+  --rpc-send-default-max-retries 3 \
+  --rpc-send-service-max-retries 3 \
+  --rpc-send-retry-ms 2000 \
+  --full-rpc-api \
+  --account-index-include-key 44NLHkBytYFsNXoKoxcb1VkbU5ReRiR1yHMywnt2qfnr \
+  --account-index-include-key TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA \
+  --geyser-plugin-config /home/sol/geyser-grpc-plugin/config.json \
+  --minimal-snapshot-download-speed 20971520
 ```
 Save / exit `ctrl+0` then `ctrl+x`
 
@@ -288,30 +300,10 @@ RestartSec=1
 LimitNOFILE=1000000
 LogRateLimitIntervalSec=0
 User=sol
-Environment=PATH=/bin:/usr/bin:/home/sol/.local/share/solana/install/active_release/bin
+Environment=PATH=/bin:/usr/bin:/home/sol/.local/share/solana/install/releases/v1.16.26-jito/bin
 Environment=SOLANA_METRICS_CONFIG=host=https://metrics.solana.com:8086,db=mainnet-beta,u=mainnet-beta_write,p=password
 ExecStart=/home/sol/start-validator.sh
 
-[Install]
-WantedBy=multi-user.target
-```
-Save / exit `ctrl+0` then `ctrl+x`
-
-Make system tuner service - systuner.service
-```
-sudo nano /etc/systemd/system/systuner.service
-```
-Edit this into file:
-```
-[Unit]
-Description=Solana System Tuner
-After=network.target
-[Service]
-Type=simple
-Restart=on-failure
-RestartSec=1
-LogRateLimitIntervalSec=0
-ExecStart=/home/sol/.local/share/solana/install/active_release/bin/solana-sys-tuner --user sol
 [Install]
 WantedBy=multi-user.target
 ```
@@ -328,7 +320,7 @@ sudo nano /etc/logrotate.d/solana
 Edit this into file:
 
 ```
-/home/sol/log/solana-validator.log {
+/extmt/log/solana-validator.log {
   su sol sol
   daily
   rotate 1
@@ -352,6 +344,8 @@ sudo apt-get install cpufrequtils
 echo 'GOVERNOR="performance"' | sudo tee /etc/default/cpufrequtils
 
 sudo systemctl disable ondemand
+
+sudo shutdown -r now
 ```
 Modifications to sysctl.conf
 ```
@@ -404,10 +398,6 @@ Save / exit `ctrl+0` then `ctrl+x`
 # Start up and test the Shadow Node
 
 ```
-sudo systemctl enable --now systuner.service
-
-sudo systemctl status systuner.service
-
 sudo systemctl enable --now sol.service
 
 sudo systemctl status sol.service
