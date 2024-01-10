@@ -163,6 +163,7 @@ sudo ufw allow 53
 sudo ufw allow ssh
 sudo ufw allow from 127.0.0.1 to 127.0.0.1 port 8899 proto tcp
 sudo ufw allow from 127.0.0.1 to 127.0.0.1 port 8900 proto tcp
+sudo ufw allow from 127.0.0.1 to 127.0.0.1 port 10000 proto tcp
 sudo ufw allow 8000:8020/udp
 sudo ufw enable
 ```
@@ -228,7 +229,7 @@ Edit this into start-validator.sh:
 
 ```
 #!/bin/bash
-PATH=/home/sol/.local/share/solana/install/releases/v1.16.26-jito/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+PATH=/home/sol/.local/share/solana/install/releases/v1.17.15-jito/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 export RUST_BACKTRACE=1
 export RUST_LOG=solana=info
 exec solana-validator \
@@ -259,7 +260,7 @@ exec solana-validator \
   --wal-recovery-mode skip_any_corrupted_record \
   --vote-account ~/vote-account-keypair.json \
   --log /extmt/log/solana-validator.log \
-  --accounts /extmt/account/solana-accounts \
+  --accounts /extmt/accounts/solana-accounts \
   --ledger /mt/ledger/validator-ledger \
   --limit-ledger-size 250000000 \
   --rpc-send-default-max-retries 3 \
@@ -269,7 +270,8 @@ exec solana-validator \
   --account-index-include-key 44NLHkBytYFsNXoKoxcb1VkbU5ReRiR1yHMywnt2qfnr \
   --account-index-include-key TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA \
   --geyser-plugin-config /home/sol/geyser-grpc-plugin/config.json \
-  --minimal-snapshot-download-speed 20971520
+  --minimal-snapshot-download-speed 20971520 \
+  --use-snapshot-archives-at-startup when-newest \
 ```
 Save / exit `ctrl+0` then `ctrl+x`
 
@@ -300,7 +302,7 @@ RestartSec=1
 LimitNOFILE=1000000
 LogRateLimitIntervalSec=0
 User=sol
-Environment=PATH=/bin:/usr/bin:/home/sol/.local/share/solana/install/releases/v1.16.26-jito/bin
+Environment=PATH=/bin:/usr/bin:/home/sol/.local/share/solana/install/releases/v1.17.15-jito/bin
 Environment=SOLANA_METRICS_CONFIG=host=https://metrics.solana.com:8086,db=mainnet-beta,u=mainnet-beta_write,p=password
 ExecStart=/home/sol/start-validator.sh
 
@@ -394,6 +396,9 @@ net.core.wmem_max=134217728
 net.core.wmem_default=134217728
 ```
 Save / exit `ctrl+0` then `ctrl+x`
+```
+sudo sysctl -p
+```
 
 Set up the geyser plugin
 
@@ -414,7 +419,7 @@ Paste this in
 ```
 {
   "libpath": "/home/sol/geyser-grpc-plugin/target/debug/libgeyser_grpc_plugin_server.so",
-  "bind_address": "0.0.0.0:10000",
+  "bind_address": "127.0.0.1:10000",
   "account_update_buffer_size": 100000,
   "slot_update_buffer_size": 100000,
   "block_update_buffer_size": 100000,
