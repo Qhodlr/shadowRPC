@@ -403,11 +403,11 @@ sudo sysctl -p
 Set up the geyser plugin
 
 ```
-git clone https://github.com/DataKnox/geyser-grpc-plugin.git
+git clone https://github.com/jito-foundation/geyser-grpc-plugin.git
 
 cd geyser-grpc-plugin/
 
-git checkout v1.16
+git checkout v1.17
 
 cargo build
 ```
