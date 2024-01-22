@@ -147,8 +147,6 @@ sudo chown -R sol:sol /mt/*
 
 sudo chown -R sol:sol /extmt/*
 
-sudo chown sol:sol ~/log
-
 ```
 Set up the firewall / ssh
 
@@ -461,6 +459,11 @@ It can take half an hour before this healthcheck reports slots. Prior it may jus
 curl http://localhost:8899 -k -X POST -H "Content-Type: application/json" -d '
   {"jsonrpc":"2.0","id":1, "method":"getHealth"}
 '
+```
+
+Check on geyser
+```
+cargo run --release --bin jito-geyser-cli -- --url "http://127.0.0.1:10000" get-heartbeat-interval
 ```
 
 Please see [shadow_monitoring](./shadow_monitoring/README.md) for a guide on setting up your own observability stack. This allows you to view your Shadow RPC Node's metrics (hardware health, network health, etc.).
