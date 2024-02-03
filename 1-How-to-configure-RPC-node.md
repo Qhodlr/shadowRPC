@@ -179,7 +179,7 @@ Find these lines and change these lines under \[Default\]
 ```
 [DEFAULT]
 . . .
-bantime = 24h
+bantime = -1
 . . .
 [DEFAULT]
 . . .
