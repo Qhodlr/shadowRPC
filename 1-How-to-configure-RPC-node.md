@@ -165,9 +165,34 @@ sudo ufw allow from 127.0.0.1 to 127.0.0.1 port 10000 proto tcp
 sudo ufw allow 8000:8020/udp
 sudo ufw enable
 ```
-These additional rules are in preparation for more Shadow Protocol features. Just drop this expanded rules block when there is a request from the team to expand ports:
+Now install Fail2Ban
 ```
-sudo ufw allow 53;sudo ufw allow 8899;sudo ufw allow 8899/tcp;sudo ufw allow 8900/tcp;sudo ufw allow 9900/udp;sudo ufw allow 9900/tcp;sudo ufw allow 9900;sudo ufw allow 8900;sudo ufw allow 8000:8012/udp
+sudo apt install fail2ban
+```
+Configure it
+```
+cd /etc/fail2ban
+sudo cp jail.conf jail.local
+sudo nano jail.local
+```
+Find these lines and change these lines under \[Default\]
+```
+[DEFAULT]
+. . .
+bantime = 24h
+. . .
+[DEFAULT]
+. . .
+findtime = 24h
+maxretry = 3
+. . .
+
+```
+Enable it
+```
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+sudo systemctl status fail2ban
 ```
 # Jito Install
 
